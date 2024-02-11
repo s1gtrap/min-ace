@@ -1,5 +1,7 @@
 #![allow(non_snake_case)]
 
+use std::collections::HashSet;
+
 use dioxus::prelude::*;
 use dioxus_router::prelude::*;
 use log::LevelFilter;
@@ -16,14 +18,34 @@ fn main() {
 }
 
 fn app(cx: Scope) -> Element {
+    let annotations = use_state(cx, || {
+        HashSet::from([editor::Annotation {
+            row: 1,
+            column: 1,
+            text: "hello world".into(),
+            ty: "error".into(),
+        }])
+    });
+    use_effect(cx, (annotations,), |(annotations,)| async move {
+        log::info!("{annotations:?}")
+    });
     render! {
         div {
             class: "container",
             div {
                 class: "grid",
+                button { onclick: move |_| annotations.set(annotations.get().iter().cloned().chain([
+                    editor::Annotation {
+                        row: annotations.get().len() + 1,
+                        column: 1,
+                        text: format!("this is line {}", annotations.get().len() + 1),
+                        ty: "error".into(),
+                    }
+                ]).collect()), "Down low!" }
                 div {
                     class: "h-screen",
                     editor::Editor {
+                        annotations: annotations.get().clone(),
                         onchange: |s| log::info!("{s:?}"),
                     }
                 }
@@ -64,7 +86,6 @@ fn Home(cx: Scope) -> Element {
             h1 { "High-Five counter: {count}" }
             button { onclick: move |_| count += 1, "Up high!" }
             button { onclick: move |_| count -= 1, "Down low!" }
-
         }
     })
 }

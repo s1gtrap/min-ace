@@ -1,8 +1,10 @@
+use std::collections::HashSet;
+
 use dioxus::prelude::*;
 use wasm_bindgen::prelude::*;
 
-#[derive(serde::Serialize)]
-struct Annotation {
+#[derive(Clone, Debug, Eq, Hash, PartialEq, serde::Serialize)]
+pub struct Annotation {
     pub row: usize,
     pub column: usize,
     pub text: String,
@@ -39,6 +41,7 @@ extern "C" {
 
 #[derive(Props)]
 pub struct FancyButtonProps<'a> {
+    annotations: HashSet<Annotation>,
     onchange: EventHandler<'a, MouseEvent>,
 }
 
@@ -62,31 +65,6 @@ pub fn Editor<'a>(cx: Scope<'a, FancyButtonProps>) -> Element<'a> {
                     use mullvm_parser::PestParser;
                     let str = session.getValue();
                     log::info!("{:?}", str);
-                    match mullvm_parser::LLVMParser::parse(mullvm_parser::Rule::module, &str) {
-                        Ok(_) => {
-                            log::info!("ok!");
-                            session.setAnnotations(
-                                JsValue::from_serde(&Vec::<Annotation>::new()).unwrap(),
-                            );
-                        }
-                        Err(e) => {
-                            log::error!("{e}");
-                            match e.line_col {
-                                mullvm_parser::LineColLocation::Pos((l, c))
-                                | mullvm_parser::LineColLocation::Span((l, c), _) => {
-                                    session.setAnnotations(
-                                        JsValue::from_serde(&vec![Annotation {
-                                            row: l - 1,
-                                            column: c - 1,
-                                            text: e.variant.message().into(),
-                                            ty: "error".into(),
-                                        }])
-                                        .unwrap(),
-                                    );
-                                }
-                            }
-                        }
-                    }
                 }
             });
             instance.getSession().on("change", &closure);
@@ -94,6 +72,18 @@ pub fn Editor<'a>(cx: Scope<'a, FancyButtonProps>) -> Element<'a> {
             editor.set(Some(instance));
         }
     });
+    use_effect(
+        cx,
+        (editor, &cx.props.annotations),
+        |(editor, annotations)| async move {
+            if let Some(editor) = editor.get() {
+                let session = editor.getSession();
+                session.setAnnotations(
+                    JsValue::from_serde(&annotations.iter().collect::<Vec<_>>()).unwrap(),
+                );
+            }
+        },
+    );
 
     cx.render(rsx! {
         div {
