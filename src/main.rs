@@ -20,10 +20,15 @@ fn app(cx: Scope) -> Element {
         div {
             class: "container",
             div {
-                class: "bg-slate-500 h-screen",
-                editor::Editor {}
+                class: "grid",
+                div {
+                    class: "h-screen",
+                    editor::Editor {
+                        onchange: |s| log::info!("{s:?}"),
+                    }
+                }
+                Router::<Route> {}
             }
-            Router::<Route> {}
         }
     }
 }

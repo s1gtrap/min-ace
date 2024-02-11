@@ -18,6 +18,9 @@ extern "C" {
     #[wasm_bindgen(js_namespace = ace)]
     fn edit(s: &str) -> EditorInstance;
 
+    #[wasm_bindgen(js_namespace = ace)]
+    fn require(s: &str) -> JsValue;
+
     #[wasm_bindgen(method)]
     fn setValue(this: &EditorSession, val: String);
 
@@ -34,8 +37,13 @@ extern "C" {
     fn on(this: &EditorSession, ev: &str, func: &Closure<dyn FnMut()>);
 }
 
+#[derive(Props)]
+pub struct FancyButtonProps<'a> {
+    onchange: EventHandler<'a, MouseEvent>,
+}
+
 #[component]
-pub fn Editor(cx: Scope) -> Element {
+pub fn Editor<'a>(cx: Scope<'a, FancyButtonProps>) -> Element<'a> {
     use gloo_utils::format::JsValueSerdeExt;
     let editor = use_state(cx, || None);
     use_effect(cx, (editor,), |(editor,)| async move {

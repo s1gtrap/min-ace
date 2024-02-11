@@ -11,6 +11,7 @@ dioxus-logger = "0.4.1"
 dioxus-router = { version = "0.4", features = ["web"] }
 dioxus-web = { version = "0.4" }
 gloo-utils = "0.2.0"
+js-sys = "0.3.68"
 log = "0.4.19"
 mullvm-parser = { path = "../../llvm--/mullvm-parser" }
 serde = "1.0.196"
