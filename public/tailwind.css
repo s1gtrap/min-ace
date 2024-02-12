@@ -578,10 +578,6 @@ video {
   }
 }
 
-.static {
-  position: static;
-}
-
 .grid {
   display: grid;
 }
@@ -594,12 +590,11 @@ video {
   height: 100vh;
 }
 
-.bg-slate-500 {
-  --tw-bg-opacity: 1;
-  background-color: rgb(100 116 139 / var(--tw-bg-opacity));
-}
-
 .filter {
   filter: var(--tw-blur) var(--tw-brightness) var(--tw-contrast) var(--tw-grayscale) var(--tw-hue-rotate) var(--tw-invert) var(--tw-saturate) var(--tw-sepia) var(--tw-drop-shadow);
 }
 
+.error {
+  position: absolute;
+  background: rgba(255, 0, 0, 0.25);
+}

@@ -27,10 +27,13 @@ extern "C" {
     type EditorSession;
 
     #[wasm_bindgen(js_namespace = ace)]
-    fn edit(s: &str) -> EditorInstance;
+    fn require(s: &str) -> JsValue;
 
     #[wasm_bindgen(js_namespace = ace)]
-    fn require(s: &str) -> JsValue;
+    fn edit(s: &str) -> EditorInstance;
+
+    #[wasm_bindgen(method)]
+    fn getSession(this: &EditorInstance) -> EditorSession;
 
     #[wasm_bindgen(method)]
     fn setValue(this: &EditorSession, val: String);
@@ -42,7 +45,13 @@ extern "C" {
     fn setAnnotations(this: &EditorSession, annots: JsValue);
 
     #[wasm_bindgen(method)]
-    fn getSession(this: &EditorInstance) -> EditorSession;
+    fn addMarker(
+        this: &EditorSession,
+        range: JsValue,
+        class: String,
+        ty: String,
+        inFront: bool,
+    ) -> isize;
 
     #[wasm_bindgen(method)]
     fn on(this: &EditorSession, ev: &str, func: &Closure<dyn FnMut()>);
@@ -99,34 +108,54 @@ pub fn Editor<'a>(cx: Scope<'a, FancyButtonProps>) -> Element<'a> {
         cx,
         (editor, marker_ids, &cx.props.markers),
         |(editor, marker_ids, markers)| async move {
-            let add_markers = markers
-                .iter()
-                .filter(|marker| !marker_ids.contains_key(*marker));
+            if let Some(editor) = editor.get() {
+                let session = editor.getSession();
 
-            for marker in add_markers {
-                log::info!(
-                    "addMarker(new Range({}, {}, {}, {}), {:?}, {:?})",
-                    marker.start.0,
-                    marker.start.1,
-                    marker.stop.0,
-                    marker.stop.1,
-                    marker.ty,
-                    marker.inFront
-                );
-                marker_ids.with_mut(|markers| {
-                    markers.insert(marker.clone(), 0);
-                });
-            }
+                let add_markers = markers
+                    .iter()
+                    .filter(|marker| !marker_ids.contains_key(*marker));
 
-            let remove_markers = marker_ids
-                .iter()
-                .filter(|(marker, _)| !markers.contains(marker));
+                for marker in add_markers {
+                    log::info!(
+                        "addMarker(new Range({}, {}, {}, {}), {:?}, {:?})",
+                        marker.start.0,
+                        marker.start.1,
+                        marker.stop.0,
+                        marker.stop.1,
+                        marker.ty,
+                        marker.inFront
+                    );
+                    let range =
+                        js_sys::Reflect::get(&require("ace/range"), &JsValue::from_str("Range"))
+                            .unwrap();
+                    let args = js_sys::Array::new();
+                    args.push(&marker.start.0.into());
+                    args.push(&marker.start.1.into());
+                    args.push(&marker.stop.0.into());
+                    args.push(&marker.stop.1.into());
+                    let range =
+                        js_sys::Reflect::construct(range.dyn_ref().unwrap(), &args).unwrap();
+                    session.addMarker(
+                        range,
+                        marker.class.clone(),
+                        marker.ty.clone(),
+                        marker.inFront,
+                    );
+                    marker_ids.with_mut(|markers| {
+                        markers.insert(marker.clone(), 0);
+                    });
+                }
 
-            for (marker, _) in remove_markers {
-                log::info!("removeMarker({})", marker_ids.get().get(marker).unwrap());
-                marker_ids.with_mut(|markers| {
-                    markers.remove(marker);
-                });
+                let remove_markers = marker_ids
+                    .iter()
+                    .filter(|(marker, _)| !markers.contains(marker));
+
+                for (marker, _) in remove_markers {
+                    log::info!("removeMarker({})", marker_ids.get().get(marker).unwrap());
+                    marker_ids.with_mut(|markers| {
+                        markers.remove(marker);
+                    });
+                }
             }
         },
     );

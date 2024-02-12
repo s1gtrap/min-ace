@@ -52,9 +52,9 @@ fn app(cx: Scope) -> Element {
                     onclick: move |_| {
                         markers.set(markers.get().iter().cloned().chain([
                             editor::Marker {
-                                start: (markers.get().len(),0),
-                                stop: (markers.get().len()+1,9),
-                                class: "blue".to_owned(),
+                                start: (1, 16),
+                                stop: (2, 1),
+                                class: "error".to_owned(),
                                 ty: "text".to_owned(),
                                 inFront: false,
                             }
