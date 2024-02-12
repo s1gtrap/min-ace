@@ -26,6 +26,7 @@ fn app(cx: Scope) -> Element {
             ty: "error".into(),
         }])
     });
+    let markers = use_state(cx, || HashSet::new());
     use_effect(cx, (annotations,), |(annotations,)| async move {
         log::info!("{annotations:?}")
     });
@@ -36,9 +37,9 @@ fn app(cx: Scope) -> Element {
                 class: "grid",
                 button { onclick: move |_| annotations.set(annotations.get().iter().cloned().chain([
                     editor::Annotation {
-                        row: annotations.get().len() + 1,
+                        row: annotations.get().len(),
                         column: 1,
-                        text: format!("this is line {}", annotations.get().len() + 1),
+                        text: format!("this is line {}", annotations.get().len()),
                         ty: "error".into(),
                     }
                 ]).collect()), "Down low!" }
@@ -46,6 +47,7 @@ fn app(cx: Scope) -> Element {
                     class: "h-screen",
                     editor::Editor {
                         annotations: annotations.get().clone(),
+                        markers: markers.get().clone(),
                         onchange: |s| log::info!("{s:?}"),
                     }
                 }

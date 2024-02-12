@@ -12,6 +12,9 @@ pub struct Annotation {
     pub ty: String,
 }
 
+#[derive(Clone, Debug, Eq, Hash, PartialEq, serde::Serialize)]
+pub struct Marker {}
+
 #[wasm_bindgen]
 extern "C" {
     type EditorInstance;
@@ -42,6 +45,7 @@ extern "C" {
 #[derive(Props)]
 pub struct FancyButtonProps<'a> {
     annotations: HashSet<Annotation>,
+    markers: HashSet<Marker>,
     onchange: EventHandler<'a, MouseEvent>,
 }
 
