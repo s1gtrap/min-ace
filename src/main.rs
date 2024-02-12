@@ -50,10 +50,14 @@ fn app(cx: Scope) -> Element {
                 }
                 button {
                     onclick: move |_| {
+                        use rand::Rng;
+                        let mut rng = rand::thread_rng();
+                        let l1: usize = rng.gen_range(0..2);
+                        let l2: usize = rng.gen_range((l1+1)..3);
                         markers.set(markers.get().iter().cloned().chain([
                             editor::Marker {
-                                start: (1, 16),
-                                stop: (2, 1),
+                                start: (l1, rng.gen_range(0..20)),
+                                stop: (l2+1, rng.gen_range(0..20)),
                                 class: "error".to_owned(),
                                 ty: "text".to_owned(),
                                 inFront: false,
