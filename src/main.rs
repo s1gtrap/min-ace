@@ -66,6 +66,21 @@ fn app(cx: Scope) -> Element {
                     },
                     "add marker"
                 }
+                button {
+                    onclick: move |_| {
+                        use rand::Rng;
+                        use rand::prelude::*;
+                        let mut rng = rand::thread_rng();
+                        let l1: usize = rng.gen_range(0..2);
+                        let l2: usize = rng.gen_range((l1+1)..3);
+                        if let Some(marker) = markers.get().iter().choose(&mut rng) {
+                            markers.with_mut(|markers| {
+                                markers.remove(marker);
+                            });
+                        }
+                    },
+                    "remove marker"
+                }
                 div {
                     class: "h-screen",
                     editor::Editor {

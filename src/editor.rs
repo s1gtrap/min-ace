@@ -54,6 +54,9 @@ extern "C" {
     ) -> isize;
 
     #[wasm_bindgen(method)]
+    fn removeMarker(this: &EditorSession, id: isize);
+
+    #[wasm_bindgen(method)]
     fn on(this: &EditorSession, ev: &str, func: &Closure<dyn FnMut()>);
 }
 
@@ -135,14 +138,14 @@ pub fn Editor<'a>(cx: Scope<'a, FancyButtonProps>) -> Element<'a> {
                     args.push(&marker.stop.1.into());
                     let range =
                         js_sys::Reflect::construct(range.dyn_ref().unwrap(), &args).unwrap();
-                    session.addMarker(
+                    let id = session.addMarker(
                         range,
                         marker.class.clone(),
                         marker.ty.clone(),
                         marker.inFront,
                     );
                     marker_ids.with_mut(|markers| {
-                        markers.insert(marker.clone(), 0);
+                        markers.insert(marker.clone(), id);
                     });
                 }
 
@@ -150,9 +153,10 @@ pub fn Editor<'a>(cx: Scope<'a, FancyButtonProps>) -> Element<'a> {
                     .iter()
                     .filter(|(marker, _)| !markers.contains(marker));
 
-                for (marker, _) in remove_markers {
+                for (marker, id) in remove_markers {
                     log::info!("removeMarker({})", marker_ids.get().get(marker).unwrap());
                     marker_ids.with_mut(|markers| {
+                        session.removeMarker(*id);
                         markers.remove(marker);
                     });
                 }
