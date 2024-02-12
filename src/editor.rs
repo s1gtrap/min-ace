@@ -64,34 +64,37 @@ extern "C" {
 pub struct FancyButtonProps<'a> {
     annotations: HashSet<Annotation>,
     markers: HashSet<Marker>,
-    onchange: EventHandler<'a, MouseEvent>,
+    onchange: EventHandler<'a, String>,
 }
 
 #[component]
 pub fn Editor<'a>(cx: Scope<'a, FancyButtonProps>) -> Element<'a> {
     use gloo_utils::format::JsValueSerdeExt;
     let editor = use_state(cx, || None);
-    use_effect(cx, (editor,), |(editor,)| async move {
-        if editor.is_none() {
-            let instance: EditorInstance = edit("editor");
-            instance.getSession().setValue(
-                r#"define i32 @main() {
+    use_effect(cx, (editor,), {
+        |(editor,)| async move {
+            if editor.is_none() {
+                let instance: EditorInstance = edit("editor");
+                instance.getSession().setValue(
+                    r#"define i32 @main() {
     %0 = add i32 1, 2
     ret i32 %0
 }"#
-                .into(),
-            );
-            let closure = Closure::new({
-                let session = instance.getSession();
-                move || {
-                    use mullvm_parser::PestParser;
-                    let str = session.getValue();
-                    log::info!("{:?}", str);
-                }
-            });
-            instance.getSession().on("change", &closure);
-            closure.forget();
-            editor.set(Some(instance));
+                    .into(),
+                );
+                let closure = Closure::new({
+                    let onchange = &cx.props.onchange;
+                    let session = instance.getSession();
+                    move || {
+                        use mullvm_parser::PestParser;
+                        let str = session.getValue();
+                        onchange.call(str);
+                    }
+                });
+                instance.getSession().on("change", &closure);
+                closure.forget();
+                editor.set(Some(instance));
+            }
         }
     });
     use_effect(
