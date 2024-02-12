@@ -62,8 +62,8 @@ extern "C" {
 
 #[component]
 pub fn Editor(
-    annotations: HashSet<Annotation>,
-    markers: HashSet<Marker>,
+    annotations: Signal<HashSet<Annotation>>,
+    markers: Signal<HashSet<Marker>>,
     onchange: EventHandler<String>,
 ) -> Element {
     use gloo_utils::format::JsValueSerdeExt;
@@ -98,7 +98,7 @@ pub fn Editor(
         if let Some(editor) = &*editor.read() {
             let session = editor.getSession();
             session.setAnnotations(
-                JsValue::from_serde(&annotations.iter().collect::<Vec<_>>()).unwrap(),
+                JsValue::from_serde(&annotations.read().iter().collect::<Vec<_>>()).unwrap(),
             );
         }
     });
@@ -107,55 +107,60 @@ pub fn Editor(
         if let Some(editor) = &*editor.read() {
             let session = editor.getSession();
 
-            let add_markers = markers
-                .iter()
-                .filter(|marker| !marker_ids.read().contains_key(*marker));
-
-            for marker in add_markers {
-                log::info!(
-                    "addMarker(new Range({}, {}, {}, {}), {:?}, {:?})",
-                    marker.start.0,
-                    marker.start.1,
-                    marker.stop.0,
-                    marker.stop.1,
-                    marker.ty,
-                    marker.inFront
-                );
-                let range =
-                    js_sys::Reflect::get(&require("ace/range"), &JsValue::from_str("Range"))
-                        .unwrap();
-                let args = js_sys::Array::new();
-                args.push(&marker.start.0.into());
-                args.push(&marker.start.1.into());
-                args.push(&marker.stop.0.into());
-                args.push(&marker.stop.1.into());
-                let range = js_sys::Reflect::construct(range.dyn_ref().unwrap(), &args).unwrap();
-                let id = session.addMarker(
-                    range,
-                    marker.class.clone(),
-                    marker.ty.clone(),
-                    marker.inFront,
-                );
-                // FIXME: make this work
-                // marker_ids.with_mut(|markers| {
-                //     markers.insert(marker.clone(), id);
-                // });
+            {
+                for marker in markers
+                    .read()
+                    .iter()
+                    .cloned()
+                    .filter(move |marker| !marker_ids.read().contains_key(marker))
+                {
+                    log::info!(
+                        "addMarker(new Range({}, {}, {}, {}), {:?}, {:?})",
+                        marker.start.0,
+                        marker.start.1,
+                        marker.stop.0,
+                        marker.stop.1,
+                        marker.ty,
+                        marker.inFront
+                    );
+                    let range =
+                        js_sys::Reflect::get(&require("ace/range"), &JsValue::from_str("Range"))
+                            .unwrap();
+                    let args = js_sys::Array::new();
+                    args.push(&marker.start.0.into());
+                    args.push(&marker.start.1.into());
+                    args.push(&marker.stop.0.into());
+                    args.push(&marker.stop.1.into());
+                    let range =
+                        js_sys::Reflect::construct(range.dyn_ref().unwrap(), &args).unwrap();
+                    let id = session.addMarker(
+                        range,
+                        marker.class.clone(),
+                        marker.ty.clone(),
+                        marker.inFront,
+                    );
+                    marker_ids.with_mut(|markers| {
+                        markers.insert(marker.clone(), id);
+                    });
+                }
             }
 
-            // FIXME: make this work
-            // let remove_markers = marker_ids
-            //     .read()
-            //     .iter()
-            //     .filter(|(marker, _)| !markers.contains(marker));
-            //
-            // for (marker, id) in remove_markers {
-            //     log::info!("removeMarker({})", marker_ids.read().get(marker).unwrap());
-            //     // FIXME: make this work
-            //     // marker_ids.with_mut(|markers| {
-            //     //     session.removeMarker(*id);
-            //     //     markers.remove(marker);
-            //     // });
-            // }
+            {
+                let markers = markers.clone();
+                let marker_ids2: Vec<_> = marker_ids
+                    .read()
+                    .clone()
+                    .iter()
+                    .map(|(k, v)| (k.clone(), v.clone()))
+                    .filter(move |(marker, _)| !markers.read().contains(marker))
+                    .collect();
+                for (marker, id) in marker_ids2 {
+                    marker_ids.with_mut(|markers| {
+                        session.removeMarker(id);
+                        markers.remove(&marker);
+                    });
+                }
+            }
         }
     });
 
