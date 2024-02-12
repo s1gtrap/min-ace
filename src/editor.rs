@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 use dioxus::prelude::*;
 use wasm_bindgen::prelude::*;
@@ -12,8 +12,13 @@ pub struct Annotation {
     pub ty: String,
 }
 
-#[derive(Clone, Debug, Eq, Hash, PartialEq, serde::Serialize)]
-pub struct Marker {}
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+pub struct Marker {
+    pub start: (usize, usize),
+    pub stop: (usize, usize),
+    pub ty: String,
+    pub inFront: bool,
+}
 
 #[wasm_bindgen]
 extern "C" {
@@ -85,6 +90,39 @@ pub fn Editor<'a>(cx: Scope<'a, FancyButtonProps>) -> Element<'a> {
                 session.setAnnotations(
                     JsValue::from_serde(&annotations.iter().collect::<Vec<_>>()).unwrap(),
                 );
+            }
+        },
+    );
+    let marker_ids = use_state(cx, || HashMap::new());
+    use_effect(
+        cx,
+        (editor, marker_ids, &cx.props.markers),
+        |(editor, marker_ids, markers)| async move {
+            let add_markers = markers
+                .iter()
+                .filter(|marker| !marker_ids.contains_key(*marker));
+
+            for marker in add_markers {
+                log::info!(
+                    "addMarker(new Range({}, {}, {}, {}), {:?}, {:?})",
+                    marker.start.0,
+                    marker.start.1,
+                    marker.stop.0,
+                    marker.stop.1,
+                    marker.ty,
+                    marker.inFront
+                );
+                marker_ids.with_mut(|markers| {
+                    markers.insert(marker.clone(), 0);
+                });
+            }
+
+            let remove_markers = marker_ids
+                .iter()
+                .filter(|(marker, _)| !markers.contains(marker));
+
+            for (marker, _) in remove_markers {
+                log::info!("removeMarker({})", marker_ids.get().get(marker).unwrap());
             }
         },
     );
