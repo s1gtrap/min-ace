@@ -35,14 +35,33 @@ fn app(cx: Scope) -> Element {
             class: "container",
             div {
                 class: "grid",
-                button { onclick: move |_| annotations.set(annotations.get().iter().cloned().chain([
-                    editor::Annotation {
-                        row: annotations.get().len(),
-                        column: 1,
-                        text: format!("this is line {}", annotations.get().len()),
-                        ty: "error".into(),
-                    }
-                ]).collect()), "Down low!" }
+                button {
+                    onclick: move |_| {
+                        annotations.set(annotations.get().iter().cloned().chain([
+                            editor::Annotation {
+                                row: annotations.get().len(),
+                                column: 1,
+                                text: format!("this is line {}", annotations.get().len()),
+                                ty: "error".into(),
+                            }
+                        ]).collect())
+                    },
+                    "add annotation"
+                }
+                button {
+                    onclick: move |_| {
+                        markers.set(markers.get().iter().cloned().chain([
+                            editor::Marker {
+                                start: (markers.get().len(),0),
+                                stop: (markers.get().len()+1,9),
+                                class: "blue".to_owned(),
+                                ty: "text".to_owned(),
+                                inFront: false,
+                            }
+                        ]).collect())
+                    },
+                    "add marker"
+                }
                 div {
                     class: "h-screen",
                     editor::Editor {

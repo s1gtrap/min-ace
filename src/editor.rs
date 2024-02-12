@@ -16,6 +16,7 @@ pub struct Annotation {
 pub struct Marker {
     pub start: (usize, usize),
     pub stop: (usize, usize),
+    pub class: String,
     pub ty: String,
     pub inFront: bool,
 }
@@ -123,6 +124,9 @@ pub fn Editor<'a>(cx: Scope<'a, FancyButtonProps>) -> Element<'a> {
 
             for (marker, _) in remove_markers {
                 log::info!("removeMarker({})", marker_ids.get().get(marker).unwrap());
+                marker_ids.with_mut(|markers| {
+                    markers.remove(marker);
+                });
             }
         },
     );
