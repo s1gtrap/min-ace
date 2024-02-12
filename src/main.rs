@@ -14,11 +14,11 @@ fn main() {
     console_error_panic_hook::set_once();
 
     log::info!("starting app");
-    dioxus_web::launch(app);
+    launch(app);
 }
 
-fn app(cx: Scope) -> Element {
-    let annotations = use_state(cx, || {
+fn app() -> Element {
+    let mut annotations = use_signal(|| {
         HashSet::from([editor::Annotation {
             row: 1,
             column: 1,
@@ -26,25 +26,23 @@ fn app(cx: Scope) -> Element {
             ty: "error".into(),
         }])
     });
-    let markers = use_state(cx, || HashSet::new());
-    use_effect(cx, (annotations,), |(annotations,)| async move {
-        log::info!("{annotations:?}")
-    });
-    render! {
+    let mut markers = use_signal(|| HashSet::new());
+    use_effect(move || log::info!("{annotations:?}"));
+    rsx! {
         div {
             class: "container",
             div {
                 class: "grid",
                 button {
                     onclick: move |_| {
-                        annotations.set(annotations.get().iter().cloned().chain([
+                        *annotations.write() = annotations.read().iter().cloned().chain([
                             editor::Annotation {
-                                row: annotations.get().len(),
+                                row: annotations.read().len(),
                                 column: 1,
-                                text: format!("this is line {}", annotations.get().len()),
+                                text: format!("this is line {}", annotations.read().len()),
                                 ty: "error".into(),
                             }
-                        ]).collect())
+                        ]).collect();
                     },
                     "add annotation"
                 }
@@ -54,7 +52,7 @@ fn app(cx: Scope) -> Element {
                         let mut rng = rand::thread_rng();
                         let l1: usize = rng.gen_range(0..2);
                         let l2: usize = rng.gen_range((l1+1)..3);
-                        markers.set(markers.get().iter().cloned().chain([
+                        *markers.write()=markers.read().iter().cloned().chain([
                             editor::Marker {
                                 start: (l1, rng.gen_range(0..20)),
                                 stop: (l2+1, rng.gen_range(0..20)),
@@ -62,7 +60,7 @@ fn app(cx: Scope) -> Element {
                                 ty: "text".to_owned(),
                                 inFront: false,
                             }
-                        ]).collect())
+                        ]).collect();
                     },
                     "add marker"
                 }
@@ -73,7 +71,7 @@ fn app(cx: Scope) -> Element {
                         let mut rng = rand::thread_rng();
                         let l1: usize = rng.gen_range(0..2);
                         let l2: usize = rng.gen_range((l1+1)..3);
-                        if let Some(marker) = markers.get().iter().choose(&mut rng) {
+                        if let Some(marker) = markers.read().iter().choose(&mut rng) {
                             markers.with_mut(|markers| {
                                 markers.remove(marker);
                             });
@@ -84,8 +82,8 @@ fn app(cx: Scope) -> Element {
                 div {
                     class: "h-screen",
                     editor::Editor {
-                        annotations: annotations.get().clone(),
-                        markers: markers.get().clone(),
+                        annotations: annotations.read().clone(),
+                        markers: markers.read().clone(),
                         onchange: |s| log::info!("{s:?}"),
                     }
                 }
@@ -104,7 +102,7 @@ enum Route {
 }
 
 #[component]
-fn Blog(cx: Scope, id: i32) -> Element {
+fn Blog(id: i32) -> Element {
     render! {
         Link { to: Route::Home {}, "Go to counter" }
         "Blog post {id}"
@@ -112,13 +110,13 @@ fn Blog(cx: Scope, id: i32) -> Element {
 }
 
 #[component]
-fn Home(cx: Scope) -> Element {
-    let mut count = use_state(cx, || 0);
+fn Home() -> Element {
+    let mut count = use_signal(|| 0);
 
-    cx.render(rsx! {
+    rsx! {
         Link {
             to: Route::Blog {
-                id: *count.get()
+                id: *count.read()
             },
             "Go to blog"
         }
@@ -127,5 +125,5 @@ fn Home(cx: Scope) -> Element {
             button { onclick: move |_| count += 1, "Up high!" }
             button { onclick: move |_| count -= 1, "Down low!" }
         }
-    })
+    }
 }

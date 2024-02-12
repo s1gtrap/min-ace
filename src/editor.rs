@@ -60,20 +60,17 @@ extern "C" {
     fn on(this: &EditorSession, ev: &str, func: &Closure<dyn FnMut()>);
 }
 
-#[derive(Props)]
-pub struct FancyButtonProps<'a> {
+#[component]
+pub fn Editor(
     annotations: HashSet<Annotation>,
     markers: HashSet<Marker>,
-    onchange: EventHandler<'a, String>,
-}
-
-#[component]
-pub fn Editor<'a>(cx: Scope<'a, FancyButtonProps>) -> Element<'a> {
+    onchange: EventHandler<String>,
+) -> Element {
     use gloo_utils::format::JsValueSerdeExt;
-    let editor = use_state(cx, || None);
-    use_effect(cx, (editor,), {
-        |(editor,)| async move {
-            if editor.is_none() {
+    let mut editor = use_signal(|| None);
+    use_effect({
+        move || {
+            if editor.read().is_none() {
                 let instance: EditorInstance = edit("editor");
                 instance.getSession().setValue(
                     r#"define i32 @main() {
@@ -83,7 +80,7 @@ pub fn Editor<'a>(cx: Scope<'a, FancyButtonProps>) -> Element<'a> {
                     .into(),
                 );
                 let closure = Closure::new({
-                    let onchange = &cx.props.onchange;
+                    let onchange = onchange.clone();
                     let session = instance.getSession();
                     move || {
                         use mullvm_parser::PestParser;
@@ -93,85 +90,80 @@ pub fn Editor<'a>(cx: Scope<'a, FancyButtonProps>) -> Element<'a> {
                 });
                 instance.getSession().on("change", &closure);
                 closure.forget();
-                editor.set(Some(instance));
+                *editor.write() = Some(instance);
             }
         }
     });
-    use_effect(
-        cx,
-        (editor, &cx.props.annotations),
-        |(editor, annotations)| async move {
-            if let Some(editor) = editor.get() {
-                let session = editor.getSession();
-                session.setAnnotations(
-                    JsValue::from_serde(&annotations.iter().collect::<Vec<_>>()).unwrap(),
+    use_effect(move || {
+        if let Some(editor) = &*editor.read() {
+            let session = editor.getSession();
+            session.setAnnotations(
+                JsValue::from_serde(&annotations.iter().collect::<Vec<_>>()).unwrap(),
+            );
+        }
+    });
+    let mut marker_ids = use_signal(|| HashMap::<Marker, isize>::new());
+    use_effect(move || {
+        if let Some(editor) = &*editor.read() {
+            let session = editor.getSession();
+
+            let add_markers = markers
+                .iter()
+                .filter(|marker| !marker_ids.read().contains_key(*marker));
+
+            for marker in add_markers {
+                log::info!(
+                    "addMarker(new Range({}, {}, {}, {}), {:?}, {:?})",
+                    marker.start.0,
+                    marker.start.1,
+                    marker.stop.0,
+                    marker.stop.1,
+                    marker.ty,
+                    marker.inFront
                 );
+                let range =
+                    js_sys::Reflect::get(&require("ace/range"), &JsValue::from_str("Range"))
+                        .unwrap();
+                let args = js_sys::Array::new();
+                args.push(&marker.start.0.into());
+                args.push(&marker.start.1.into());
+                args.push(&marker.stop.0.into());
+                args.push(&marker.stop.1.into());
+                let range = js_sys::Reflect::construct(range.dyn_ref().unwrap(), &args).unwrap();
+                let id = session.addMarker(
+                    range,
+                    marker.class.clone(),
+                    marker.ty.clone(),
+                    marker.inFront,
+                );
+                // FIXME: make this work
+                // marker_ids.with_mut(|markers| {
+                //     markers.insert(marker.clone(), id);
+                // });
             }
-        },
-    );
-    let marker_ids = use_state(cx, || HashMap::new());
-    use_effect(
-        cx,
-        (editor, marker_ids, &cx.props.markers),
-        |(editor, marker_ids, markers)| async move {
-            if let Some(editor) = editor.get() {
-                let session = editor.getSession();
 
-                let add_markers = markers
-                    .iter()
-                    .filter(|marker| !marker_ids.contains_key(*marker));
+            // FIXME: make this work
+            // let remove_markers = marker_ids
+            //     .read()
+            //     .iter()
+            //     .filter(|(marker, _)| !markers.contains(marker));
+            //
+            // for (marker, id) in remove_markers {
+            //     log::info!("removeMarker({})", marker_ids.read().get(marker).unwrap());
+            //     // FIXME: make this work
+            //     // marker_ids.with_mut(|markers| {
+            //     //     session.removeMarker(*id);
+            //     //     markers.remove(marker);
+            //     // });
+            // }
+        }
+    });
 
-                for marker in add_markers {
-                    log::info!(
-                        "addMarker(new Range({}, {}, {}, {}), {:?}, {:?})",
-                        marker.start.0,
-                        marker.start.1,
-                        marker.stop.0,
-                        marker.stop.1,
-                        marker.ty,
-                        marker.inFront
-                    );
-                    let range =
-                        js_sys::Reflect::get(&require("ace/range"), &JsValue::from_str("Range"))
-                            .unwrap();
-                    let args = js_sys::Array::new();
-                    args.push(&marker.start.0.into());
-                    args.push(&marker.start.1.into());
-                    args.push(&marker.stop.0.into());
-                    args.push(&marker.stop.1.into());
-                    let range =
-                        js_sys::Reflect::construct(range.dyn_ref().unwrap(), &args).unwrap();
-                    let id = session.addMarker(
-                        range,
-                        marker.class.clone(),
-                        marker.ty.clone(),
-                        marker.inFront,
-                    );
-                    marker_ids.with_mut(|markers| {
-                        markers.insert(marker.clone(), id);
-                    });
-                }
-
-                let remove_markers = marker_ids
-                    .iter()
-                    .filter(|(marker, _)| !markers.contains(marker));
-
-                for (marker, id) in remove_markers {
-                    log::info!("removeMarker({})", marker_ids.get().get(marker).unwrap());
-                    marker_ids.with_mut(|markers| {
-                        session.removeMarker(*id);
-                        markers.remove(marker);
-                    });
-                }
-            }
-        },
-    );
-
-    cx.render(rsx! {
+    rsx! {
         div {
             id: "editor",
             class: "h-full",
             ""
         }
-    })
+    }
 }
