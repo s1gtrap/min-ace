@@ -11,7 +11,7 @@ mod error;
 
 fn main() {
     // Init debug
-    dioxus_logger::init(LevelFilter::Info).expect("failed to init logger");
+    dioxus_logger::init(LevelFilter::Trace).expect("failed to init logger");
     console_error_panic_hook::set_once();
 
     log::info!("starting app");
