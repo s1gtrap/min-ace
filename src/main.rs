@@ -26,7 +26,7 @@ fn app() -> Element {
             ty: "error".into(),
         }])
     });
-    let mut markers = use_signal(|| HashSet::new());
+    let mut markers = use_signal(HashSet::new);
     use_effect(move || log::info!("{annotations:?}"));
     rsx! {
         div {
@@ -72,32 +72,8 @@ fn app() -> Element {
                 }
                 button {
                     onclick: move |_| {
-                        use rand::Rng;
-                        let mut rng = rand::thread_rng();
-                        let l1: usize = rng.gen_range(0..2);
-                        let l2: usize = rng.gen_range((l1+1)..3);
-                        let new_markers = {
-                            markers.read().iter().cloned().chain([
-                                editor::Marker {
-                                    start: (l1, rng.gen_range(0..20)),
-                                    stop: (l2+1, rng.gen_range(0..20)),
-                                    class: "error".to_owned(),
-                                    ty: "text".to_owned(),
-                                    inFront: false,
-                                }
-                            ]).collect()
-                        };
-                        *markers.write() = new_markers;
-                    },
-                    "add marker"
-                }
-                button {
-                    onclick: move |_| {
-                        use rand::Rng;
                         use rand::prelude::*;
                         let mut rng = rand::thread_rng();
-                        let l1: usize = rng.gen_range(0..2);
-                        let l2: usize = rng.gen_range((l1+1)..3);
                         let c = markers.read().iter().cloned().choose(&mut rng).clone();
                         if let Some(marker) = c {
                             markers.with_mut(|markers| {
@@ -131,7 +107,7 @@ enum Route {
 
 #[component]
 fn Blog(id: i32) -> Element {
-    render! {
+    rsx! {
         Link { to: Route::Home {}, "Go to counter" }
         "Blog post {id}"
     }

@@ -82,11 +82,7 @@ pub fn Editor(
                 let closure = Closure::new({
                     let onchange = onchange.clone();
                     let session = instance.getSession();
-                    move || {
-                        use mullvm_parser::PestParser;
-                        let str = session.getValue();
-                        onchange.call(str);
-                    }
+                    move || onchange.call(session.getValue())
                 });
                 instance.getSession().on("change", &closure);
                 closure.forget();
@@ -102,7 +98,7 @@ pub fn Editor(
             );
         }
     });
-    let mut marker_ids = use_signal(|| HashMap::<Marker, isize>::new());
+    let mut marker_ids = use_signal(HashMap::<Marker, isize>::new);
     use_effect(move || {
         if let Some(editor) = &*editor.read() {
             let session = editor.getSession();
@@ -111,7 +107,6 @@ pub fn Editor(
                 for marker in markers
                     .read()
                     .iter()
-                    .cloned()
                     .filter(move |marker| !marker_ids.read().contains_key(marker))
                 {
                     log::info!(
@@ -146,12 +141,11 @@ pub fn Editor(
             }
 
             {
-                let markers = markers.clone();
                 let marker_ids2: Vec<_> = marker_ids
                     .read()
                     .clone()
                     .iter()
-                    .map(|(k, v)| (k.clone(), v.clone()))
+                    .map(|(k, v)| (k.clone(), *v))
                     .filter(move |(marker, _)| !markers.read().contains(marker))
                     .collect();
                 for (marker, id) in marker_ids2 {
