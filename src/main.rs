@@ -7,6 +7,7 @@ use dioxus_router::prelude::*;
 use log::LevelFilter;
 
 mod editor;
+mod error;
 
 fn main() {
     // Init debug
@@ -27,7 +28,8 @@ fn app() -> Element {
         }])
     });
     let mut markers = use_signal(HashSet::new);
-    use_effect(move || log::info!("{annotations:?}"));
+    //let mut error = use_signal(|| Option::None);
+
     rsx! {
         div {
             class: "container",
@@ -88,7 +90,33 @@ fn app() -> Element {
                     editor::Editor {
                         annotations: annotations,
                         markers: markers,
-                        onchange: |s| log::info!("{s:?}"),
+                        onchange: move |s: String| {
+                            use mullvm_parser::PestParser;
+                            log::info!("{s:?}");
+                            match mullvm_parser::LLVMParser::parse(mullvm_parser::Rule::module, &s) {
+                                Ok(_) => {
+                                    log::info!("ok!");
+                                    *annotations.write() = HashSet::new();
+                                }
+                                Err(e) => {
+                                    log::error!("{e}");
+                                    *annotations.write() = HashSet::from([
+                                        match e.line_col {
+                                            mullvm_parser::LineColLocation::Pos((row, column)) |
+                                            mullvm_parser::LineColLocation::Span((row, column), _) => {
+                                                log::info!("{row} {column}");
+                                                editor::Annotation {
+                                                        row,
+                                                        column,
+                                                        text: format!("{}", e.variant.message()),
+                                                        ty: "error".into(),
+                                                    }
+                                                }
+                                            }
+                                    ])
+                                }
+                            }
+                        }
                     }
                 }
                 Router::<Route> {}
