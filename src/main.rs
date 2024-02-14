@@ -31,11 +31,16 @@ pub fn Editor(annotations: Signal<HashSet<Annotation>>, onchange: EventHandler<S
     let mut editor = use_signal(|| None);
     use_effect({
         move || {
+            log::info!("1st effect");
             if editor.read().is_none() {
                 let instance: EditorInstance = edit("editor");
                 let closure = Closure::new({
                     let onchange = onchange.clone();
-                    move || onchange.call(String::new())
+                    move || {
+                        log::info!("change emitted by ace");
+                        onchange.call(String::new());
+                        log::info!("change in ace finished");
+                    }
                 });
                 instance.getSession().on("change", &closure);
                 closure.forget();
@@ -44,6 +49,7 @@ pub fn Editor(annotations: Signal<HashSet<Annotation>>, onchange: EventHandler<S
         }
     });
     use_effect(move || {
+        log::info!("2nd effect");
         if let Some(editor) = &*editor.read() {
             let session = editor.getSession();
             session.setAnnotations(
@@ -69,7 +75,9 @@ fn app() -> Element {
                 Editor {
                     annotations: annotations,
                     onchange: move |s: String| {
+                        log::info!("change emitted by dx");
                         *annotations.write() = HashSet::new();
+                        log::info!("change in dx finished");
                     }
                 }
             }
