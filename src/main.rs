@@ -38,7 +38,8 @@ pub fn Editor(annotations: Signal<HashSet<Annotation>>, onchange: EventHandler<S
                     let onchange = onchange.clone();
                     move || {
                         log::info!("change emitted by ace");
-                        onchange.call(String::new());
+                        //onchange.call(String::new());
+                        *annotations.write() = HashSet::new();
                         log::info!("change in ace finished");
                     }
                 });
@@ -46,6 +47,7 @@ pub fn Editor(annotations: Signal<HashSet<Annotation>>, onchange: EventHandler<S
                 closure.forget();
                 *editor.write() = Some(instance);
             }
+            log::warn!("1st effect finished");
         }
     });
     use_effect(move || {
@@ -55,6 +57,7 @@ pub fn Editor(annotations: Signal<HashSet<Annotation>>, onchange: EventHandler<S
             session.setAnnotations(
                 JsValue::from_serde(&annotations.read().iter().collect::<Vec<_>>()).unwrap(),
             );
+            log::warn!("2nd effect finished");
         }
     });
     rsx! {
@@ -88,5 +91,10 @@ fn app() -> Element {
 fn main() {
     dioxus_logger::init(LevelFilter::Trace).expect("failed to init logger");
     console_error_panic_hook::set_once();
+    tracing_wasm::set_as_global_default_with_config(
+        tracing_wasm::WASMLayerConfigBuilder::default()
+            .set_max_level(tracing::Level::TRACE)
+            .build(),
+    );
     launch(app);
 }

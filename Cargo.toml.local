@@ -1,0 +1,19 @@
+[package]
+name = "min-ace"
+version = "0.1.0"
+authors = ["William Tange <will@tan.ge>"]
+edition = "2021"
+
+[dependencies]
+console_error_panic_hook = "0.1.7"
+dioxus = { path = "../dioxus/packages/dioxus", features = ["web"] }
+dioxus-logger = "0.4.1"
+dioxus-router = { path = "../dioxus/packages/router", features = ["web"] }
+dioxus-web = { path = "../dioxus/packages/web" }
+gloo-utils = "0.2.0"
+js-sys = "0.3.68"
+log = "0.4.19"
+serde = "1.0.196"
+tracing = "0.1.40"
+tracing-wasm = "0.2.1"
+wasm-bindgen = "0.2.91"
