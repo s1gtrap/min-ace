@@ -38,7 +38,7 @@ pub fn Editor(state: Signal<()>) -> Element {
     rsx! {
         div {
             id: "editor",
-            class: "h-full bg-slate-100",
+            class: "h-28 bg-orange-300",
             ""
         }
     }
@@ -49,7 +49,7 @@ fn app() -> Element {
     rsx! {
         div {
             div {
-                class: "h-screen",
+                class: "h-screen m-5",
                 Editor {
                     state,
                 }
