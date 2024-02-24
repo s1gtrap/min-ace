@@ -35,11 +35,19 @@ pub fn Editor(state: Signal<()>) -> Element {
         }
         log::warn!("exit 2nd effect");
     });
+    let mut count = use_signal(|| 0);
     rsx! {
         div {
             id: "editor",
-            class: "h-28 bg-orange-300",
+            class: "m-5 h-28 bg-orange-300",
             ""
+        }
+        div {
+            class: "m-5 h-28 bg-cyan-300",
+            onclick: move |_| {
+                *count.write() += 1;
+            },
+            {format!("{}", *count.read())}
         }
     }
 }
