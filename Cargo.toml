@@ -6,14 +6,14 @@ edition = "2021"
 
 [dependencies]
 console_error_panic_hook = "0.1.7"
-dioxus = { git = "https://github.com/DioxusLabs/dioxus.git", rev = "a454f2c7ac239933bb4d5cd184c8a549190070f1", features = [
+dioxus = { git = "https://github.com/DioxusLabs/dioxus.git", rev = "e0b0afc0a9f710f2074569b7176259a0d855a242", features = [
   "web",
 ] }
 dioxus-logger = "0.4.1"
-dioxus-router = { git = "https://github.com/DioxusLabs/dioxus.git", rev = "a454f2c7ac239933bb4d5cd184c8a549190070f1", features = [
+dioxus-router = { git = "https://github.com/DioxusLabs/dioxus.git", rev = "e0b0afc0a9f710f2074569b7176259a0d855a242", features = [
   "web",
 ] }
-dioxus-web = { git = "https://github.com/DioxusLabs/dioxus.git", rev = "a454f2c7ac239933bb4d5cd184c8a549190070f1" }
+dioxus-web = { git = "https://github.com/DioxusLabs/dioxus.git", rev = "e0b0afc0a9f710f2074569b7176259a0d855a242" }
 gloo-utils = "0.2.0"
 js-sys = "0.3.68"
 log = "0.4.19"
